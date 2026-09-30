@@ -47,7 +47,7 @@ function NavItems(props: { closeNav: () => void }) {
 
       <Divider />
 
-      {ExternalItem('https://github.com/kevinhughes27/parity-server', 'Source Code')}
+      {ExternalItem('https://github.com/kevinhughes27/parity-league', 'Source Code')}
       {ExternalItem('/docs', 'API Docs')}
     </List>
   );

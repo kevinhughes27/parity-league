@@ -61,13 +61,13 @@ Usage: ./dev <command>
 
   setup                   install dependencies, create .dev.vars
   up                      start the app (React + Worker + Durable Objects) on :5173
-  seed --to <url> [--all] copy leagues between servers (e.g. production into staging)
+  seed --to <url> [--all] copy leagues between servers
   test                    run the unit tests
   e2e [args]              run the stat keeper tests in a browser (--ui-port=8080 to watch)
   check                   type-check, format check and unit tests
   yarn <args>             run yarn
   wrangler <args>         run wrangler (e.g. ./dev wrangler secret put ADMIN_PASSWORD)
-  deploy [--env staging]  build and deploy
+  deploy [--secrets-file <file>]   build and deploy (first deploy needs --secrets-file prod.secrets)
   shell                   open a shell in the container
 EOF
     ;;

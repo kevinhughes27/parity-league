@@ -3,6 +3,10 @@
   "name": "parity",
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-30",
+  // Served at https://parity.<account>.workers.dev until the custom domain is
+  // set up (see Hosting). Preview URLs are not used.
+  "workers_dev": true,
+  "preview_urls": false,
 
   // The React app. Unknown paths serve index.html; /api/* always runs the Worker.
   // (with the vite plugin the build output directory is set automatically)
@@ -31,15 +35,4 @@
   // parity.ocua.ca that CNAME to it (see Hosting in the README). Until then it is
   // served at https://parity.<account-subdomain>.workers.dev
   // "routes": [{ "pattern": "*/*", "zone_name": "<domain>" }],
-
-  "env": {
-    // A separate Worker with its own Durable Objects (so its own data).
-    // Deploy with `./dev deploy --env staging`. Bindings are not inherited.
-    "staging": {
-      "durable_objects": {
-        "bindings": [{ "name": "LEAGUE", "class_name": "LeagueObject" }]
-      },
-      "triggers": { "crons": [] }
-    }
-  }
 }

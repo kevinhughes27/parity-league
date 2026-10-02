@@ -1,13 +1,11 @@
-Parity
-======
+# Parity
 
 Stats and salaries for the [OCUA Parity League](https://www.ocua.ca/Parity-League), a league where we record stats for every game, turn them into (fake) player salaries, and teams have to stay under a salary cap to keep things balanced.
 
 Production: https://parity.ocua.ca
 
 
-How it works
-------------
+## How it works
 
 There is no server to run. Parity is one [Cloudflare Worker](https://developers.cloudflare.com/workers/) that serves three things:
 
@@ -29,8 +27,7 @@ If you haven't used them: a Durable Object is a small class with its own private
 In development the same thing runs locally inside `./dev up`, with the databases in `.wrangler/state`.
 
 
-Leagues
--------
+## Leagues
 
 Every league is a separate Durable Object named by the league's id. They don't share anything and nothing ever reads more than one of them at a time, so a season can't affect any other season and each one stays small (the biggest is ~5MB, the limit is 10GB).
 
@@ -54,8 +51,7 @@ Nothing in the data is specific to OCUA, but the deployment is. To run Parity fo
 4. Deploy it (see Deploying) on your own domain.
 
 
-Development
------------
+## Development
 
 Everything runs in a container via `./dev` (needs [podman](https://podman.io)), so node, yarn and wrangler never run directly on your machine.
 
@@ -65,16 +61,6 @@ Everything runs in a container via `./dev` (needs [podman](https://podman.io)), 
 ```
 
 The app opens on the dev league (see Leagues), the other leagues show production's data. Local Durable Object data lives in `.wrangler/state`, delete it to reset the dev league. The local admin password is `dev` (see `.dev.vars`).
-
-### Code
-
-```
-src/       the React app (stats site + stat keeper)
-shared/    stats + salary logic, types and the league list, used by the app and the Worker
-worker/    the Worker, the league Durable Object, the Zuluru scraper and the dev league
-e2e/       browser tests for the stat keeper
-scripts/   seed (copy leagues between servers) and compare (diff two servers' APIs)
-```
 
 ### Tests
 
@@ -90,19 +76,31 @@ The e2e tests (`e2e/`) drive the stat keeper through whole games against a produ
 Both run on every push in GitHub Actions.
 
 
-Deploying
----------
+## Deploying
 
 ```sh
 ./dev deploy                     # build and deploy production
-./dev deploy --env staging       # a separate Worker with separate data, for trying things out
 ./dev wrangler tail              # production logs
-./dev seed --to https://parity-staging.<account>.workers.dev --all   # copy production's data into staging
+./dev seed --all --from v2.sqlite --to https://parity.<account>.workers.dev
 ```
 
 Your first `./dev deploy` publishes the Worker and app to your account's `workers.dev` subdomain at `https://parity.<account>.workers.dev`. There is no database or other service to create: a league's Durable Object (and its tables) is created the first time the Worker asks for it. Authenticate once with `./dev wrangler login`, or set `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (see Secrets below).
 
-The Worker deploys before its secrets are set, but admin routes and the Zuluru sync don't work until they are. `./dev seed` also needs the target Worker's admin password, passed through from the host as `ADMIN_PASSWORD`.
+`wrangler.jsonc` declares the Worker's secrets as required, and Cloudflare only lets you `wrangler secret put` on a Worker that already exists. So the first deploy has to supply them in a git-ignored file called `prod.secrets`:
+
+```txt
+ADMIN_PASSWORD=your-admin-password
+ZULURU_USER=your-ocua-username
+ZULURU_PASSWORD=your-ocua-password
+```
+
+Then:
+
+```sh
+./dev deploy --secrets-file prod.secrets
+```
+
+`ADMIN_PASSWORD` also authenticates `./dev seed`; the Zuluru values can be placeholders until the sync is needed. Once the Worker exists, change secrets with `./dev wrangler secret put NAME` — later deploys keep what is already set.
 
 Deploys can also happen on every push to `main` by connecting the repo in the Cloudflare dashboard (Workers & Pages > parity > Settings > Builds, build command `yarn build`, deploy command `yarn wrangler deploy`).
 
@@ -118,7 +116,7 @@ Parity runs in its own Cloudflare account, on its own domain (`<domain>` below).
 ./dev wrangler secret put ZULURU_PASSWORD
 ```
 
-Secret values can be replaced but never read back. Add `--env staging` for staging.
+Secret values can be replaced but never read back.
 
 `./dev` uses a Cloudflare API token if `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` are set. Create one from the *Edit Cloudflare Workers* template: remove the KV and R2 permissions and limit the zone to `<domain>`. `./dev wrangler login` also works.
 
@@ -141,40 +139,12 @@ When it breaks (Zuluru changes its pages, the password changes) it fails before 
 Durable Objects can be restored to any point in the last 30 days. For anything longer save the exports, e.g. `curl https://parity.ocua.ca/api/24/export > 24.json`.
 
 
-Moving from v2
---------------
+## Moving from v2
 
-The plan for moving production from parity-server (EC2) to this. Delete this section (and `scripts/compare.ts` and the v2 reader in `scripts/seed.ts`) once it is done.
-
-**Set up** (any time, v2 keeps running):
-
-1. Buy a domain for Parity (the Cloudflare registrar is at cost) in your Cloudflare account.
-2. Set the secrets (above), deploy, and set up hosting on the domain:
-   - DNS: proxied `AAAA` records for `@` and `origin`, both pointing to `100::` (the Worker answers, the address is never used)
-   - Uncomment `routes` in `wrangler.jsonc` with your domain and deploy again
-   - SSL/TLS > Custom Hostnames: enable Cloudflare for SaaS, set the fallback origin to `origin.<domain>` and add the custom hostname `parity.ocua.ca`
-3. Load the data. Copy the v2 database (`scp parity-server:~/parity-server/server/db.sqlite v2.sqlite`) then `./dev seed --all --from v2.sqlite --to https://<domain>`.
-4. Check it matches v2: `./dev yarn node scripts/compare.ts --a https://parity.ocua.ca --b https://<domain>`. Expect differences only for the two v2 salary bugs listed in the script. Try the stat keeper on `https://<domain>` too.
-
-**Cut over** (a weekday, not game day, since no games can be recorded in between):
-
-1. Copy the v2 database and seed again (steps 3 and 4) so v3 has the latest games.
-2. OCUA replaces the `parity.ocua.ca` A record (`3.98.197.218`) with `CNAME parity.ocua.ca -> origin.<domain>`.
-3. Cloudflare validates the hostname and issues its certificate once the CNAME exists. OCUA's zone is on Cloudflare so this can't be done ahead of time and takes a few minutes. Watch the custom hostname status go to *Active*, then check `https://parity.ocua.ca/api/leagues`.
-
-Stat keepers don't need to do anything. The site stays on the same address so games saved in their browsers stay put, and uploads from pages opened before the switch still work (`/submit_game` is kept for this).
-
-**Rolling back**: put the A record back. v2 is untouched, but any games uploaded to v3 in between would need to be re-uploaded from the stat keepers' browsers.
-
-**Afterwards**: once it has run for a few weeks, stop the EC2 instance, release its Elastic IP and archive parity-server.
-
-### Moving to OCUA's account
-
-Workers can't be transferred between Cloudflare accounts but moving is just a redeploy: deploy this repo to OCUA's account, copy the data across with `./dev seed --all --from https://parity.ocua.ca --to https://parity.<ocua-subdomain>.workers.dev`, then serve `parity.ocua.ca` from the new Worker with a custom domain (`{ "pattern": "parity.ocua.ca", "custom_domain": true }` in `routes`) instead of the CNAME.
+See `MIGRATING.md`.
 
 
-API
----
+## API
 
 All data is public and CORS enabled. `:league` is the league id from `/api/leagues`.
 
@@ -192,12 +162,10 @@ All data is public and CORS enabled. `:league` is the league id from `/api/leagu
 Admin (basic auth, user `admin`): `POST /api/:league/games/:id` edit, `DELETE /api/:league/games/:id`, `POST /api/:league/import`, `POST /api/:league/zuluru_sync`.
 
 
-History
--------
+## History
 
-This is Parity 3.0. Versions 1 and 2 (2014-2026) were a Python server with an Android stat keeping app in [kevinhughes27/parity-server](https://github.com/kevinhughes27/parity-server), now archived. 3.0 was built on the `v3` branch there. This repo's history starts with a single commit of the v2 code at `20ee02d`, where v3 branched, followed by the v3 development commits. The stats and API responses were checked against v2 for every game it ever recorded (`scripts/compare.ts`).
+This is Parity 3.0. Versions 1 and 2 (2014-2026) were a Python server with an Android stat keeping app in [kevinhughes27/parity-server](https://github.com/kevinhughes27/parity-server), now archived. 3.0 was built on the `v3` branch there. This repo's history starts with a single commit of the v2 code at `20ee02d`, where v3 branched, followed by the v3 development commits. The stats and API responses were checked against v2 for every game it ever recorded.
 
-Contributing
-------------
+## Contributing
 
 PRs welcome! If you play in the league and want to help out, get in touch on slack or by email.

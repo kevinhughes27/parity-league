@@ -8,27 +8,27 @@ Parity 3.0 is a rewrite of [parity-server](https://github.com/kevinhughes27/pari
 
 Done and verified:
 
-- Stats and salaries ported to TypeScript (`shared/stats.ts`). They match v2's snapshots and v2's stats table for all 996 games, and `scripts/compare.ts` found v2 and v3 API responses identical across all 24 leagues except two v2 salary bugs (listed in the script).
-- The Worker API, league Durable Object, Zuluru scraper (league and division pages), dev league, seed and compare scripts.
+- Stats and salaries ported to TypeScript (`shared/stats.ts`). They match v2's snapshots and v2's stats table for all 996 games.
+- The Worker API, league Durable Object, Zuluru scraper (league and division pages), dev league and seed script.
 - v2's e2e stat keeper tests ported to Playwright (`e2e/`), all 21 passing.
 - The README covers development, deploying, the v2 migration plan, hosting and forking.
 
 Not done yet:
 
-- **Nothing is deployed.** Production is still v2 at https://parity.ocua.ca. The migration plan is the "Moving from v2" section of the README (hosting on a dedicated Cloudflare account + domain, `parity.ocua.ca` as a Cloudflare for SaaS custom hostname via a CNAME from OCUA).
+- **The cutover.** Production is still v2 at https://parity.ocua.ca. v3 is deployed in the dedicated Cloudflare account at https://parity.kevinhughes27.workers.dev and the v2 database has been imported into it. What's left from `MIGRATING.md` is the domain + Cloudflare for SaaS custom hostname setup and the CNAME cutover.
 - The commits are unsigned (made from a sandbox with no gpg).
 
-Never verified (the sandbox had no podman, no Cloudflare account and couldn't reach parity.ocua.ca):
+Still to verify (the sandbox has no podman and can't reach parity.ocua.ca):
 
-- `./dev` itself, including `./dev e2e` in the Playwright image. Every command it wraps was run directly on Node 24.
+- `./dev up` and `./dev e2e` in the Playwright image. `./dev deploy` and `./dev wrangler` have been run by hand; the seed script was run directly with Node 24.
 - The GitHub Actions workflow (`.github/workflows/ci.yml`).
-- `wrangler deploy`, secrets, the custom hostname setup and the `*/*` route in `wrangler.jsonc`.
+- The custom hostname setup and the `*/*` route in `wrangler.jsonc`.
 - The Zuluru login (needs real credentials). Parsing was tested against real public pages (teams lists, schedules) and a saved roster page.
 - Dev mode reading real leagues from production (`worker/dev.ts`). Tested against a local v2 server instead.
 
 Follow ups:
 
-- After the cutover: delete `scripts/compare.ts`, the v2 sqlite reader in `scripts/seed.ts`, the `/submit_game` route in `worker/index.ts` and the "Moving from v2" README section.
+- After the cutover: delete the v2 sqlite reader in `scripts/seed.ts`, the `/submit_game` route in `worker/index.ts` and `MIGRATING.md`.
 - Sub genders aren't uploaded by the stat keeper (rosters are just names), see the `custom substitutes` e2e test.
 - Live games: the API accepts `"status": "live"` and keeps live games out of stats but the stat keeper doesn't send it. This is left for later.
 - Ratio warnings in the stat keeper are disabled (commented cases in `e2e/rules.spec.ts`).
@@ -60,5 +60,6 @@ Follow ups:
 - The root `cloudflare()` vite plugin is disabled under vitest (`!process.env.VITEST`), the worker test project uses `cloudflareTest()` instead.
 - e2e tests share one league so they run one at a time. The e2e server is a production build with in memory storage (`E2E=1` sets `persistState: false`) on port 5174.
 - Wrangler reads secrets from `.dev.vars` if it exists and only then falls back to `process.env`. CI writes a `.dev.vars`.
+- `secrets.required` means a brand new Worker must be created with `./dev deploy --secrets-file prod.secrets`; `wrangler secret put` only works after the Worker exists. Later deploys keep existing secrets even without the file (`keepSecrets`).
 - v2 events from 2014-2017 have no timestamps and some have no `secondActor`. Keep them as recorded.
 - Nested `ctx.storage.transactionSync` calls aren't documented, so we avoid them (see `writeRosters` vs `setRosters` in `worker/league.ts`).

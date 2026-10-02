@@ -1,0 +1,21 @@
+# dependencies
+node_modules
+
+# build + test output
+dist
+coverage
+*.log
+
+# wrangler local state (local Durable Object SQLite lives here) + secrets
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+
+# misc
+.DS_Store
+*.sqlite
+
+# playwright output
+e2e/results
+e2e/report

@@ -1,0 +1,104 @@
+@charset "UTF-8";
+
+/* Layout */
+html, body, #root {
+  min-height: 100%;
+  height: 100%;
+}
+
+#root > div {
+  min-height: 100%;
+  height: 100%;
+}
+
+/* Table */
+.MuiTableCell-head > span > button {
+  color: rgba(0, 0, 0, 0.87) !important;
+}
+
+/* Responsive Table */
+/* This modifies how the table renders by rotatating it so the
+   data is orientented left to right instead of top to bottom.
+   This makes it easier to consume on a mobile device.
+   This general idea probably holds up to any table but it was
+   built on top of the MaterialUI table styles and might overwrite
+   parts of those styles. */
+@media only screen and (max-width : 992px) {
+  .responsive-table table {
+    display: block;
+    padding-top: 10px;
+  }
+
+  .responsive-table table thead {
+    float: left;
+    border-right: 1px solid rgba(0, 0, 0, 0.12);
+  }
+
+  .responsive-table table thead th {
+    text-align: left;
+  }
+
+  .responsive-table table tbody {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .responsive-table table tbody tr {
+    display: inline-block;
+    margin-left: 5px;
+    border-right: 1px solid rgba(0, 0, 0, 0.12);
+  }
+
+  .responsive-table table th {
+    display: block;
+    height: 58px;
+    width: 100% !important;
+    min-width: fit-content;
+    padding: 5px 0px 0px 10px;
+  }
+
+  .responsive-table table td {
+    display: block;
+    height: 58px;
+    width: 100% !important;
+    min-width: fit-content;
+    padding: 5px 10px 0px 0px;
+    text-align: center;
+  }
+
+  /* this hides the more advanced table controls like selecitng columns, filters etc.
+     it makes the mobile version feel cleaner while leaving power features for desktop. */
+  .responsive-table .MuiToolbar-root button {
+    display: none;
+  }
+
+  /* rotate the sorting icons to match the new table orientation */
+  .MuiTableSortLabel-iconDirectionDesc {
+    transform: rotate(270deg) !important;
+  }
+
+  .MuiTableSortLabel-iconDirectionAsc {
+    transform: rotate(90deg) !important;
+  }
+}
+
+/* Game Show */
+.game-tabs {
+  min-height: 300px;
+}
+
+@media only screen and (min-width : 992px) {
+  .game-title {
+    min-height: 70px;
+  }
+
+  .game-tabs {
+    min-height: 480px;
+  }
+}
+@media only screen and (max-width : 992px) {
+  .game-points-title {
+    min-width: 100%;
+  }
+}

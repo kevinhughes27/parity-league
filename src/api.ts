@@ -1,0 +1,228 @@
+/* global btoa */
+import 'whatwg-fetch';
+import { leagues as registry } from '../shared/leagues';
+
+export interface LeagueFromJson {
+  id: number;
+  name: string;
+  lineSize: number;
+}
+
+// the league registry is bundled so there is no API round trip for it
+export const leagues: LeagueFromJson[] = registry;
+
+export const getLeagueName = (leagueId: number | string): string => {
+  const id = typeof leagueId === 'string' ? parseInt(leagueId, 10) : leagueId;
+  const league = leagues.find(l => l.id === id);
+  return league ? league.name : `Unknown League (${leagueId})`;
+};
+
+interface IDataCache {
+  [key: string]: string;
+}
+
+const dataCache: IDataCache = {};
+
+const cachedFetch = async (url: string, _options = {}) => {
+  const cacheKey = url;
+  const cached = dataCache[cacheKey];
+
+  // return the cache if possible
+  if (cached !== undefined) {
+    const response = new Response(new Blob([cached]));
+    return response;
+  }
+
+  const response = await fetch(url);
+
+  // cache the response
+  if (response.status === 200) {
+    const content = await response.clone().text();
+    dataCache[cacheKey] = content;
+  }
+
+  return response;
+};
+
+export interface Game {
+  id: string;
+  league_id: string;
+  week: number;
+  homeTeam: string;
+  homeScore: number;
+  homeRoster: string[];
+  awayTeam: string;
+  awayScore: number;
+  awayRoster: string[];
+  points: Point[];
+  stats: Stats | undefined;
+}
+
+export interface Point {
+  offensePlayers: string[];
+  defensePlayers: string[];
+  events: PointEvent[];
+}
+
+export interface PointEvent {
+  type: string;
+  firstActor: string;
+  secondActor: string | null;
+  timestamp: string;
+}
+
+export const fetchGames = async (leagueId: string): Promise<Game[]> => {
+  const response = await cachedFetch(`/api/${leagueId}/games`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch games for league ${leagueId}: ${response.statusText}`);
+  }
+  return await response.json();
+};
+
+export const fetchGame = async (gameId: string, leagueId: string): Promise<Game> => {
+  const response = await cachedFetch(`/api/${leagueId}/games/${gameId}`);
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch game ${gameId} for league ${leagueId}: ${response.statusText}`
+    );
+  }
+  return await response.json();
+};
+
+export const saveGame = async (
+  gameId: string,
+  leagueId: string,
+  json: string,
+  password: string | null
+) => {
+  const url = `/api/${leagueId}/games/${gameId}`;
+  const auth = btoa(`admin:${password}`);
+
+  // clear cache
+  delete dataCache[url];
+
+  return fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Basic ${auth}`,
+    },
+    body: json,
+  });
+};
+
+export const deleteGame = async (gameId: string, leagueId: string, password: string | null) => {
+  const url = `/api/${leagueId}/games/${gameId}`;
+  const auth = btoa(`admin:${password}`);
+
+  // clear cache
+  delete dataCache[url];
+
+  return fetch(url, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Basic ${auth}`,
+    },
+  });
+};
+
+export interface Player {
+  name: string;
+  team: string;
+  salary: number;
+}
+
+export interface TeamPlayer {
+  name: string;
+  team: string;
+  is_open: boolean;
+}
+
+export interface Team {
+  id: number;
+  name: string;
+  players: TeamPlayer[];
+}
+
+export const fetchTeams = async (leagueId: string): Promise<Team[]> => {
+  const response = await cachedFetch(`/api/${leagueId}/teams`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch teams for league ${leagueId}: ${response.statusText}`);
+  }
+  return await response.json();
+};
+
+export const fetchPlayers = async (leagueId: string): Promise<Player[]> => {
+  const response = await cachedFetch(`/api/${leagueId}/players`);
+  return await response.json();
+};
+
+export const fetchWeeks = async (leagueId: string): Promise<number[]> => {
+  const response = await cachedFetch(`/api/${leagueId}/weeks`);
+  return await response.json();
+};
+
+export interface Matchup {
+  id: number;
+  league_id: number;
+  homeTeamId: number;
+  awayTeamId: number;
+  week: number;
+  gameStart: string;
+  gameEnd: string;
+}
+
+export interface Schedule {
+  teams: Team[];
+  matchups: Matchup[];
+}
+
+export const fetchSchedule = async (leagueId: string): Promise<Schedule> => {
+  const response = await fetch(`/api/${leagueId}/schedule`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch schedule: ${response.statusText}`);
+  }
+  return await response.json();
+};
+
+export interface Stats {
+  [key: string]: StatLine;
+}
+
+export interface StatLine {
+  name: string;
+  team: string;
+  goals: number;
+  assists: number;
+  second_assists: number;
+  d_blocks: number;
+  catches: number;
+  completions: number;
+  throw_aways: number;
+  threw_drops: number;
+  o_points_for: number;
+  o_points_against: number;
+  d_points_for: number;
+  d_points_against: number;
+  pay: number;
+
+  // index
+  [key: string]: number | string;
+}
+
+export const fetchStats = async (weekNum: number, leagueId: string): Promise<Stats> => {
+  let url = `/api/${leagueId}/weeks/${weekNum}`;
+  if (weekNum === 0) url = `/api/${leagueId}/stats`;
+
+  const response = await cachedFetch(url);
+  const json = await response.json();
+  const data = json.stats || {};
+  return data;
+};
+
+export const clearCache = () => {
+  Object.keys(dataCache).forEach(key => {
+    delete dataCache[key];
+  });
+};

@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Runs all project tooling (node, yarn, wrangler) in a container so none of it
+# runs directly on your machine. Needs podman (rootless).
+#
+# The repo is mounted at /app. A named volume holds the container's $HOME
+# (yarn cache, wrangler login) between runs. Host networking lets you open the
+# dev server at http://localhost:5173 and lets `wrangler login` receive its
+# OAuth callback. CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID are passed
+# through if set.
+set -euo pipefail
+cd "$(dirname "$0")"
+
+IMAGE="docker.io/library/node:24"
+# the playwright image has the browsers, its version must match package.json
+PLAYWRIGHT_VERSION="$(sed -n 's/.*"@playwright\/test": "\(.*\)".*/\1/p' package.json)"
+PLAYWRIGHT_IMAGE="mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble"
+
+run_in() {
+  local image="$1"
+  shift
+  local tty=(-i)
+  if [ -t 0 ] && [ -t 1 ]; then tty=(-it); fi
+
+  podman run --rm "${tty[@]}" \
+    --userns=keep-id \
+    --network=host \
+    --ipc=host \
+    -v "$PWD":/app -w /app \
+    -v parity-home:/home/dev:U -e HOME=/home/dev \
+    -e CLOUDFLARE_API_TOKEN -e CLOUDFLARE_ACCOUNT_ID \
+    "$image" "$@"
+}
+
+run() { run_in "$IMAGE" "$@"; }
+
+cmd="${1:-help}"
+[ $# -gt 0 ] && shift
+
+case "$cmd" in
+  setup)
+    run yarn install --frozen-lockfile
+    if [ ! -f .dev.vars ]; then
+      # local secrets (git ignored). In production they are set with
+      # `./dev wrangler secret put NAME`
+      printf 'ADMIN_PASSWORD=dev\nZULURU_USER=\nZULURU_PASSWORD=\n' > .dev.vars
+    fi
+    echo "Ready. Run ./dev up"
+    ;;
+  up)      run yarn dev "$@" ;;
+  seed)    run node scripts/seed.ts "$@" ;;
+  test)    run yarn test "$@" ;;
+  e2e)     run_in "$PLAYWRIGHT_IMAGE" npx --no-install playwright test -c e2e "$@" ;;
+  check)   run sh -c 'yarn type-check && yarn format:check && yarn test' ;;
+  yarn)    run yarn "$@" ;;
+  wrangler) run yarn wrangler "$@" ;;
+  deploy)  run sh -c 'yarn build && yarn wrangler deploy "$@"' deploy "$@" ;;
+  shell)   run bash ;;
+  *)
+    cat <<'EOF'
+Usage: ./dev <command>
+
+  setup                   install dependencies, create .dev.vars
+  up                      start the app (React + Worker + Durable Objects) on :5173
+  seed --to <url> [--all] copy leagues between servers (e.g. production into staging)
+  test                    run the unit tests
+  e2e [args]              run the stat keeper tests in a browser (--ui-port=8080 to watch)
+  check                   type-check, format check and unit tests
+  yarn <args>             run yarn
+  wrangler <args>         run wrangler (e.g. ./dev wrangler secret put ADMIN_PASSWORD)
+  deploy [--env staging]  build and deploy
+  shell                   open a shell in the container
+EOF
+    ;;
+esac

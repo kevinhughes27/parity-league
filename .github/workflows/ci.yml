@@ -32,7 +32,7 @@ jobs:
       - run: yarn playwright install --with-deps chromium
       - run: printf 'ADMIN_PASSWORD=e2e\nZULURU_USER=\nZULURU_PASSWORD=\n' > .dev.vars
       - run: yarn e2e
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report

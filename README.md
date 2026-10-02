@@ -100,6 +100,10 @@ Deploying
 ./dev seed --to https://parity-staging.<account>.workers.dev --all   # copy production's data into staging
 ```
 
+Your first `./dev deploy` publishes the Worker and app to your account's `workers.dev` subdomain at `https://parity.<account>.workers.dev`. There is no database or other service to create: a league's Durable Object (and its tables) is created the first time the Worker asks for it. Authenticate once with `./dev wrangler login`, or set `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (see Secrets below).
+
+The Worker deploys before its secrets are set, but admin routes and the Zuluru sync don't work until they are. `./dev seed` also needs the target Worker's admin password, passed through from the host as `ADMIN_PASSWORD`.
+
 Deploys can also happen on every push to `main` by connecting the repo in the Cloudflare dashboard (Workers & Pages > parity > Settings > Builds, build command `yarn build`, deploy command `yarn wrangler deploy`).
 
 ### Hosting
@@ -186,13 +190,6 @@ All data is public and CORS enabled. `:league` is the league id from `/api/leagu
 | `PUT /api/:league/games/:id` | save a game from the stat keeper (safe to retry) |
 
 Admin (basic auth, user `admin`): `POST /api/:league/games/:id` edit, `DELETE /api/:league/games/:id`, `POST /api/:league/import`, `POST /api/:league/zuluru_sync`.
-
-
-Ideas
------
-
-- **Live games.** Games are only uploaded when they are finished, but the API already accepts `"status": "live"` uploads and keeps live games out of the stats. Saving after every point would make live scores and stats cheap to add (a Durable Object can also push updates over WebSockets).
-- **Single sided stats.** The stat keeper records both teams. Competitive teams usually only take stats for their own side and live stats would be most useful to them. Since running your own Parity is a fork and a deploy (see For another organization), a single sided mode could open it up to them.
 
 
 History

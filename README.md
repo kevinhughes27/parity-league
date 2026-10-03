@@ -6,7 +6,6 @@ Production: https://parity.kevinhughes27.workers.dev/ / https://parity.ocua.ca
 
 This is Parity 3.0. Previous versions (2014-2026) were a Python server with an Android stat keeping app in [kevinhughes27/parity-server](https://github.com/kevinhughes27/parity-server), now archived. This repo's history starts with a single commit of the v2 code at `20ee02d`, where v3 branched, followed by the v3 development commits.
 
-
 ## How it works
 
 There is no server to run. Parity is one [Cloudflare Worker](https://developers.cloudflare.com/workers/) that serves three things:
@@ -16,7 +15,6 @@ There is no server to run. Parity is one [Cloudflare Worker](https://developers.
 - **The daily Zuluru sync**, a cron trigger that keeps the current league's rosters and schedule up to date from OCUA's Zuluru site while its season is being played.
 
 Each league's data lives in its own [Durable Object](https://developers.cloudflare.com/durable-objects/) (`worker/league.ts`), which holds the league's teams, schedule and games. A game is stored as it was recorded, a list of points and their events. Stats and salaries are computed from the events whenever they are asked for; the largest season ever takes ~40ms, so nothing is precomputed or stored.
-
 
 ### Durable Objects
 
@@ -28,7 +26,6 @@ If you haven't used them: a Durable Object is a small class with its own private
 - The Worker calls its methods directly (`stub.stats(...)`), like calling a function on another machine.
 
 In development the same thing runs locally inside `./dev up`, with the databases in `.wrangler/state`.
-
 
 ## Leagues
 
@@ -44,24 +41,22 @@ The app spans leagues without knowing about Durable Objects. The league picker c
 
 **The dev league.** In development (`./dev up`) the list has one more league, id 0, that only exists on your machine. It is the current league, so the stat keeper records games into it, and it fills itself with made up teams, a schedule and a couple of games the first time it is used. The real leagues are read from production so there is real data to look at, but anything that would change them stays local. See `worker/dev.ts`.
 
-
 ## API
 
 All data is public and CORS enabled. `:league` is the league id from `/api/leagues`.
 
-| | |
-|---|---|
-| `GET /api/leagues` | all leagues |
-| `GET /api/:league/export` | everything for a league: teams, schedule, games with every event |
-| `GET /api/:league/stats` | season stats per player |
-| `GET /api/:league/weeks` and `/weeks/:week` | weeks played and stats for one week |
-| `GET /api/:league/players` | salaries |
-| `GET /api/:league/teams` and `/schedule` | rosters and upcoming games |
-| `GET /api/:league/games` and `/games/:id` | games (`?includePoints=true` for events) and one game with its stats |
-| `PUT /api/:league/games/:id` | save a game from the stat keeper (safe to retry) |
+|                                             |                                                                      |
+| ------------------------------------------- | -------------------------------------------------------------------- |
+| `GET /api/leagues`                          | all leagues                                                          |
+| `GET /api/:league/export`                   | everything for a league: teams, schedule, games with every event     |
+| `GET /api/:league/stats`                    | season stats per player                                              |
+| `GET /api/:league/weeks` and `/weeks/:week` | weeks played and stats for one week                                  |
+| `GET /api/:league/players`                  | salaries                                                             |
+| `GET /api/:league/teams` and `/schedule`    | rosters and upcoming games                                           |
+| `GET /api/:league/games` and `/games/:id`   | games (`?includePoints=true` for events) and one game with its stats |
+| `PUT /api/:league/games/:id`                | save a game from the stat keeper (safe to retry)                     |
 
 Admin (basic auth, user `admin`): `POST /api/:league/games/:id` edit, `DELETE /api/:league/games/:id`, `POST /api/:league/import`, `POST /api/:league/zuluru_sync`.
-
 
 ## Development
 
@@ -81,8 +76,7 @@ The app opens on the dev league (see Leagues), the other leagues show production
 ./dev e2e            # the stat keeper in a real browser
 ```
 
-The e2e tests (`e2e/`) drive the stat keeper through whole games against a production build of the app, then check what was saved in the league's Durable Object. Each test starts with a fresh league from `e2e/fixtures.ts`. The test server uses in memory storage so it never touches your local data. `./dev e2e -g basic` runs matching tests, `./dev e2e --ui-port=8080` lets you watch them at http://localhost:8080.
-
+The e2e tests (`e2e/`) drive the stat keeper through whole games against a production build of the app, then check what was saved in the league's Durable Object. Each test starts with a fresh league from `e2e/fixtures.ts`. The test server uses in memory storage so it never touches your local data. `./dev e2e -g basic` runs matching tests, `./dev e2e --headed` opens a browser window so you can watch. If `./dev up` is running the tests use it (and its dev league); otherwise they build the app (~10s) and boot their own server.
 
 ## Deploying
 
@@ -116,7 +110,6 @@ Secret values can be replaced but never read back:
 ./dev wrangler secret put ZULURU_PASSWORD
 ```
 
-
 ### Importing
 
 `scripts/seed.ts` copies leagues between servers and can read a v2 sqlite database. To import the v2 data into the live Worker:
@@ -127,13 +120,11 @@ ADMIN_PASSWORD=... ./dev seed --to https://parity.kevinhughes27.workers.dev --al
 
 Without `--all` only the current league is imported. Importing replaces everything in each target league and needs the target Worker's `ADMIN_PASSWORD`, passed through from the host.
 
-
 ### New season
 
 1. Find the Zuluru page that lists the Parity teams. OCUA sets up some seasons as their own Zuluru league and others as a division of a bigger league, so it is either `.../zuluru/leagues/view?league=1234` or `.../zuluru/divisions/view?division=5678`.
 2. Add the league to the top of `shared/leagues.json` with that url as `zuluru`, then deploy.
 3. The next daily sync fills in the teams and schedule, or sync right away: `curl -u admin:$PASSWORD -X POST https://parity.ocua.ca/api/<league>/zuluru_sync`.
-
 
 ### Zuluru sync
 
@@ -143,11 +134,9 @@ The sync only ever touches the current league, and it stops a week after the lea
 
 When it breaks (Zuluru changes its pages, the password changes) it fails before changing anything: rosters and the schedule stay as they were, and stat keepers can still add anyone missing as a sub. The error shows up in the logs (`./dev wrangler tail` or the dashboard) and in the response from the admin endpoint.
 
-
 ### Backups
 
 Durable Objects can be restored to any point in the last 30 days. For anything longer save the exports, e.g. `curl https://parity.ocua.ca/api/24/export > 24.json`.
-
 
 ### For another organization
 
@@ -157,7 +146,6 @@ Nothing in the data is specific to OCUA, but the deployment is. To run Parity fo
 2. Rosters: the Zuluru sync (`worker/zuluru.ts`) scrapes OCUA's site. Point it at your own Zuluru, or set `zuluru` to `null` and load teams with `POST /api/:league/import` before any games are recorded (import replaces everything in the league).
 3. Set your time zone (`TIME_ZONE` in `worker/index.ts`, used for upcoming games) and where development reads real leagues from (`PRODUCTION` in `worker/dev.ts`).
 4. Deploy it (see Deploying) on your own domain.
-
 
 ## Contributing
 

@@ -5,8 +5,7 @@
 # The repo is mounted at /app. A named volume holds the container's $HOME
 # (yarn cache, wrangler login) between runs. Host networking lets you open the
 # dev server at http://localhost:5173 and lets `wrangler login` receive its
-# OAuth callback. CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID and
-# ADMIN_PASSWORD (used by `./dev seed`) are passed through if set.
+# OAuth callback.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -15,9 +14,7 @@ IMAGE="docker.io/library/node:24"
 PLAYWRIGHT_VERSION="$(sed -n 's/.*"@playwright\/test": "\(.*\)".*/\1/p' package.json)"
 PLAYWRIGHT_IMAGE="mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble"
 
-run_in() {
-  local image="$1"
-  shift
+run() {
   local tty=(-i)
   if [ -t 0 ] && [ -t 1 ]; then tty=(-it); fi
 
@@ -27,11 +24,51 @@ run_in() {
     --ipc=host \
     -v "$PWD":/app -w /app \
     -v parity-home:/home/dev:U -e HOME=/home/dev \
-    -e CLOUDFLARE_API_TOKEN -e CLOUDFLARE_ACCOUNT_ID -e ADMIN_PASSWORD \
-    "$image" "$@"
+    "$IMAGE" "$@"
 }
 
-run() { run_in "$IMAGE" "$@"; }
+port_open() { (exec 3<>"/dev/tcp/localhost/$1") 2>/dev/null; }
+
+e2e() {
+  local args=()
+
+  # pass the X display through so --headed (and --debug) can open a window.
+  # label=disable is for SELinux hosts, the cookie is mounted because the
+  # container's $HOME is a volume without your ~/.Xauthority
+  if [ -n "${DISPLAY:-}" ]; then
+    local xauth="${XAUTHORITY:-$HOME/.Xauthority}"
+    args+=(
+      -e DISPLAY="$DISPLAY"
+      -v /tmp/.X11-unix:/tmp/.X11-unix
+      --security-opt label=disable
+    )
+    if [ -f "$xauth" ]; then
+      args+=(-e XAUTHORITY=/home/dev/.Xauthority -v "$xauth":/home/dev/.Xauthority:ro)
+    fi
+  fi
+
+  # reuse ./dev up instead of booting the e2e build (see e2e/playwright.config.ts)
+  if port_open 5173; then
+    echo "Reusing ./dev up on :5173"
+    args+=(-e E2E_DEV=1)
+  else
+    # build up front so its output is visible (the test server would hide it)
+    run yarn vite build
+    args+=(-e E2E_BUILT=1)
+  fi
+
+  local tty=(-i)
+  if [ -t 0 ] && [ -t 1 ]; then tty=(-it); fi
+
+  podman run --rm "${tty[@]}" \
+    --userns=keep-id \
+    --network=host \
+    --ipc=host \
+    -v "$PWD":/app -w /app \
+    -v parity-home:/home/dev:U -e HOME=/home/dev \
+    "${args[@]}" \
+    "$PLAYWRIGHT_IMAGE" npx --no-install playwright test -c e2e "$@"
+}
 
 cmd="${1:-help}"
 [ $# -gt 0 ] && shift
@@ -40,8 +77,7 @@ case "$cmd" in
   setup)
     run yarn install --frozen-lockfile
     if [ ! -f .dev.vars ]; then
-      # local secrets (git ignored). In production they are set with
-      # `./dev wrangler secret put NAME`
+      # local secrets (git ignored). In production they are set with `./dev wrangler secret put NAME`
       printf 'ADMIN_PASSWORD=dev\nZULURU_USER=\nZULURU_PASSWORD=\n' > .dev.vars
     fi
     echo "Ready. Run ./dev up"
@@ -49,7 +85,7 @@ case "$cmd" in
   up)      run yarn dev "$@" ;;
   seed)    run node scripts/seed.ts "$@" ;;
   test)    run yarn test "$@" ;;
-  e2e)     run_in "$PLAYWRIGHT_IMAGE" npx --no-install playwright test -c e2e "$@" ;;
+  e2e)     e2e "$@" ;;
   check)   run sh -c 'yarn type-check && yarn format:check && yarn test' ;;
   yarn)    run yarn "$@" ;;
   wrangler) run yarn wrangler "$@" ;;
@@ -63,7 +99,7 @@ Usage: ./dev <command>
   up                      start the app (React + Worker + Durable Objects) on :5173
   seed --to <url> [--all] copy leagues between servers
   test                    run the unit tests
-  e2e [args]              run the stat keeper tests in a browser (--ui-port=8080 to watch)
+  e2e [args]              run the stat keeper tests in a browser (--headed or --debug to watch)
   check                   type-check, format check and unit tests
   yarn <args>             run yarn
   wrangler <args>         run wrangler (e.g. ./dev wrangler secret put ADMIN_PASSWORD)

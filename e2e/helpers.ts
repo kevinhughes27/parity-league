@@ -1,7 +1,7 @@
 // Stat keeper helpers, ported from v2's test_stat_keeper.py.
 //
-// use `yarn e2e --headed --debug` and `await page.pause()` to step through a
-// test, or `yarn e2e --ui` to watch them run.
+// use `./dev e2e --headed --debug` and `await page.pause()` to step through a
+// test, or `./dev e2e --headed` to watch them run.
 
 import { expect, type Page } from '@playwright/test';
 
@@ -25,6 +25,9 @@ export async function selectTeams(page: Page, home: string, away: string) {
 
   await page.getByRole('combobox', { name: 'Away Team' }).click();
   await page.getByRole('option', { name: away }).click();
+
+  // the dropdown's closing animation can swallow the Create Game click
+  await expect(page.getByRole('listbox')).not.toBeVisible();
 
   // create game (navigates to game view in edit rosters mode)
   await clickButton(page, 'Create Game');

@@ -314,7 +314,8 @@ function NewGame() {
   const selectedAwayTeamObj = leagueTeams.find(t => t.id.toString() === awayTeamIdStr);
 
   const handleCreateGame = async () => {
-    if (!currentLeague?.league?.id || !selectedHomeTeamObj || !selectedAwayTeamObj) {
+    // id == null, not !id: the dev league's id is 0
+    if (currentLeague?.league?.id == null || !selectedHomeTeamObj || !selectedAwayTeamObj) {
       showSnackbar('Please select both teams.');
       return;
     }
@@ -406,11 +407,14 @@ function NewGame() {
           </>
         )}
 
-        {leagueTeams.length === 0 && !loadingTeams && currentLeague?.league?.id && !errorTeams && (
-          <Typography sx={{ flexShrink: 0, p: 2 }}>
-            No teams found for the current league.
-          </Typography>
-        )}
+        {leagueTeams.length === 0 &&
+          !loadingTeams &&
+          currentLeague?.league?.id != null &&
+          !errorTeams && (
+            <Typography sx={{ flexShrink: 0, p: 2 }}>
+              No teams found for the current league.
+            </Typography>
+          )}
       </Box>
 
       {!loadingTeams && !errorTeams && leagueTeams.length > 0 && (

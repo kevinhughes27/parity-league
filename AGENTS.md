@@ -57,8 +57,9 @@ Follow ups:
 - `shared/leagues.ts` uses `import.meta.env?.DEV` (optional) because Node (e2e, scripts) has no `import.meta.env`. Worker code uses `import.meta.env.DEV` so vite can drop dev code from production builds; check `dist/` if you touch it.
 - The Cloudflare vite plugin handles requests before vite's `server.proxy`, which is why dev reads from production in the Worker (`worker/dev.ts`) and not in vite config.
 - The root `cloudflare()` vite plugin is disabled under vitest (`!process.env.VITEST`), the worker test project uses `cloudflareTest()` instead.
-- e2e tests share one league so they run one at a time. The e2e server is a production build with in memory storage (`E2E=1` sets `persistState: false`) on port 5174.
+- e2e tests share one league so they run one at a time. The e2e server is a production build with in memory storage (`E2E=1` sets `persistState: false`) on port 5174. `./dev e2e` reuses `./dev up` when it is running (the tests then target the dev league, `E2E_DEV`), otherwise it runs the build itself (`E2E_BUILT`) so its output is visible — Playwright hides the webServer's output.
 - Wrangler reads secrets from `.dev.vars` if it exists and only then falls back to `process.env`. CI writes a `.dev.vars`.
 - `secrets.required` means a brand new Worker must be created with `./dev deploy --secrets-file prod.secrets`; `wrangler secret put` only works after the Worker exists. Later deploys keep existing secrets even without the file (`keepSecrets`).
 - v2 events from 2014-2017 have no timestamps and some have no `secondActor`. Keep them as recorded.
 - Nested `ctx.storage.transactionSync` calls aren't documented, so we avoid them (see `writeRosters` vs `setRosters` in `worker/league.ts`).
+- The dev league's id is 0, which is falsy. Guard with `id == null`, never `!id` (this broke game creation in `./dev up` once).

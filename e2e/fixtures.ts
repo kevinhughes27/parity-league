@@ -6,7 +6,7 @@
 
 import { test as base, expect, type APIRequestContext } from '@playwright/test';
 import { readFileSync, existsSync } from 'node:fs';
-import { currentLeague } from '../shared/leagues';
+import { currentLeague, devLeague } from '../shared/leagues';
 import type { Game, LeagueExport, Matchup, Team, TeamPlayer } from '../shared/types';
 import type { StatLine } from '../shared/stats';
 import rosterFixture from '../shared/fixtures/rosters.json' with { type: 'json' };
@@ -15,15 +15,19 @@ export { expect };
 
 export type Rosters = Record<string, string[]>;
 
+// When `./dev e2e` reuses `./dev up` (E2E_DEV, see playwright.config.ts) the
+// app is the dev build, whose current league is the dev league.
+const leagueUnderTest = process.env.E2E_DEV ? devLeague : currentLeague;
+
 // The league under test, i.e. its Durable Object
 export class League {
   constructor(private request: APIRequestContext) {}
 
-  private api = `/api/${currentLeague.id}`;
+  private api = `/api/${leagueUnderTest.id}`;
 
   // Replace everything in the league
   async reset(teams: Team[], matchups: Matchup[] = []) {
-    const data: LeagueExport = { version: 1, league: currentLeague, teams, matchups, games: [] };
+    const data: LeagueExport = { version: 1, league: leagueUnderTest, teams, matchups, games: [] };
     const response = await this.request.post(`${this.api}/import`, {
       data,
       headers: { Authorization: `Basic ${btoa(`admin:${adminPassword()}`)}` },

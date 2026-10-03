@@ -4,31 +4,30 @@ Read the README first, it explains how everything works. This file is extra cont
 
 ## Status
 
-Parity 3.0 is a rewrite of [parity-server](https://github.com/kevinhughes27/parity-server) (v2: Python/FastAPI + SQLite on EC2, an Android app) as a Cloudflare Worker with a Durable Object per league. It was built on the `v3` branch of parity-server and now lives in this repo. Its history starts with a baseline commit of v2 at `20ee02d`, followed by the v3 development commits (see History in the README).
+Parity 3.0 is a rewrite of [parity-server](https://github.com/kevinhughes27/parity-server) (v2: Python/FastAPI + SQLite on EC2, an Android app) as a Cloudflare Worker with a Durable Object per league. It was built on the `v3` branch of parity-server and now lives in this repo. Its history starts with a baseline commit of v2 at `20ee02d`, followed by the v3 development commits.
 
 Done and verified:
 
 - Stats and salaries ported to TypeScript (`shared/stats.ts`). They match v2's snapshots and v2's stats table for all 996 games.
 - The Worker API, league Durable Object, Zuluru scraper (league and division pages), dev league and seed script.
 - v2's e2e stat keeper tests ported to Playwright (`e2e/`), all 21 passing.
-- The README covers development, deploying, the v2 migration plan, hosting and forking.
+- The README covers development, deploying, importing, hosting and forking.
 
 Not done yet:
 
-- **The cutover.** Production is still v2 at https://parity.ocua.ca. v3 is deployed in the dedicated Cloudflare account at https://parity.kevinhughes27.workers.dev and the v2 database has been imported into it. What's left from `MIGRATING.md` is the domain + Cloudflare for SaaS custom hostname setup and the CNAME cutover.
+- **The cutover.** Production is still v2 at https://parity.ocua.ca. v3 is deployed at https://parity.kevinhughes27.workers.dev with the v2 database imported. The only step left is OCUA pointing the `parity.ocua.ca` CNAME at that workers.dev URL.
 - The commits are unsigned (made from a sandbox with no gpg).
 
 Still to verify (the sandbox has no podman and can't reach parity.ocua.ca):
 
 - `./dev up` and `./dev e2e` in the Playwright image. `./dev deploy` and `./dev wrangler` have been run by hand; the seed script was run directly with Node 24.
 - The GitHub Actions workflow (`.github/workflows/ci.yml`).
-- The custom hostname setup and the `*/*` route in `wrangler.jsonc`.
 - The Zuluru login (needs real credentials). Parsing was tested against real public pages (teams lists, schedules) and a saved roster page.
 - Dev mode reading real leagues from production (`worker/dev.ts`). Tested against a local v2 server instead.
 
 Follow ups:
 
-- After the cutover: delete the v2 sqlite reader in `scripts/seed.ts`, the `/submit_game` route in `worker/index.ts` and `MIGRATING.md`.
+- After the cutover: delete the v2 sqlite reader in `scripts/seed.ts` and the `/submit_game` route in `worker/index.ts`.
 - Sub genders aren't uploaded by the stat keeper (rosters are just names), see the `custom substitutes` e2e test.
 - Live games: the API accepts `"status": "live"` and keeps live games out of stats but the stat keeper doesn't send it. This is left for later.
 - Ratio warnings in the stat keeper are disabled (commented cases in `e2e/rules.spec.ts`).
@@ -48,7 +47,7 @@ Follow ups:
 
 - Use `./dev` (podman) for everything, node is not run directly on the host. `./dev check` and `./dev e2e` before committing (in a sandbox without podman: `yarn type-check && yarn format:check && yarn test && yarn e2e`).
 - Never write to production. Dev mode can only read it. `scripts/seed.ts` writes wherever `--to` points.
-- `v2.sqlite` (git ignored, a copy of v2's database) is what seeding for the migration reads. Refresh it from production right before the cutover.
+- `v2.sqlite` (git ignored, a copy of v2's database) is what `./dev seed --from v2.sqlite` imports. Refresh it from production right before the cutover.
 - Style: small, plain code with comments that explain why. The README is hand written, no hard wrapped lines, and it's fine for it to explain Cloudflare concepts for newcomers.
 - The SQL schema (`SCHEMA` in `worker/league.ts`) is append only, each entry runs once per Durable Object. `migrations` in `wrangler.jsonc` is for Durable Object classes, not tables.
 

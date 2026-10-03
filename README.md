@@ -117,6 +117,17 @@ Secret values can be replaced but never read back:
 ```
 
 
+### Importing
+
+`scripts/seed.ts` copies leagues between servers and can read a v2 sqlite database. To import the v2 data into the live Worker:
+
+```sh
+ADMIN_PASSWORD=... ./dev seed --to https://parity.kevinhughes27.workers.dev --all --from v2.sqlite
+```
+
+Without `--all` only the current league is imported. Importing replaces everything in each target league and needs the target Worker's `ADMIN_PASSWORD`, passed through from the host.
+
+
 ### New season
 
 1. Find the Zuluru page that lists the Parity teams. OCUA sets up some seasons as their own Zuluru league and others as a division of a bigger league, so it is either `.../zuluru/leagues/view?league=1234` or `.../zuluru/divisions/view?division=5678`.

@@ -67,7 +67,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
   if (!league || rest.length > 0) return json({ error: 'Not found' }, 404);
   const stub = leagueObject(env, league);
 
-  // development: see worker/dev.ts
+  // development (see worker/dev.ts): the dev league seeds itself, the real
+  // leagues are read only — GETs come from production, writes stay local
   if (import.meta.env.DEV) {
     if (league.id === devLeague.id) await seedDevLeague(stub);
     else if (method === 'GET') return fromProduction(request);

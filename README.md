@@ -39,7 +39,7 @@ The app spans leagues without knowing about Durable Objects. The league picker c
 
 **League ids are forever.** They name the Durable Object and are in every link. Taking a league out of the list only hides it, its data stays where it was.
 
-**The dev league.** In development (`./dev up`) the list has one more league, id 0, that only exists on your machine. It is the current league, so the stat keeper records games into it, and it fills itself with made up teams, a schedule and a couple of games the first time it is used. The real leagues are read from production so there is real data to look at, but anything that would change them stays local. See `worker/dev.ts`.
+**The dev league.** In development (`./dev up`) the list has one more league, id 0, that only exists on your machine. It is the current league, so the stat keeper records games into it, and it fills itself with made up teams, a schedule and a couple of games the first time it is used. The real leagues show production's data so there is something real to look at. They are read only: only GET requests are proxied, anything that would change them stays local. See the development branch in `worker/index.ts` and `worker/dev.ts`.
 
 ## API
 
@@ -67,7 +67,7 @@ Everything runs in a container via `./dev` (needs [podman](https://podman.io)), 
 ./dev up             # the whole app at http://localhost:5173, Worker + Durable Objects included
 ```
 
-The app opens on the dev league (see Leagues), the other leagues show production's data. Local Durable Object data lives in `.wrangler/state`, delete it to reset the dev league. The local admin password is `dev` (see `.dev.vars`).
+The app opens on the dev league (see Leagues). The other leagues are read only from production — you can browse their real data but not change it. Local Durable Object data lives in `.wrangler/state`, delete it to reset the dev league. The local admin password is `dev` (see `.dev.vars`).
 
 ### Tests
 

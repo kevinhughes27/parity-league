@@ -5,7 +5,8 @@
 // time it is used. Delete .wrangler/state to start over.
 //
 // The real leagues are read from production so there is real data to look at.
-// Anything else (writes) stays local so dev can't change production.
+// They are read only: only GET requests are proxied (see the development branch
+// in worker/index.ts), anything that would change them stays local.
 
 import { devLeague } from '../shared/leagues';
 import type { Game, LeagueExport, Matchup, Team } from '../shared/types';
@@ -14,7 +15,9 @@ import miniGame from '../shared/fixtures/mini_game.json';
 import miniGame2 from '../shared/fixtures/mini_game2.json';
 import type { LeagueObject } from './league';
 
-export const PRODUCTION = 'https://parity.ocua.ca';
+// The v3 deployment. parity.ocua.ca still points at the old v2 server until the
+// cutover (see Deploying in the README), after which both urls are the same.
+export const PRODUCTION = 'https://parity.kevinhughes27.workers.dev';
 
 export function fromProduction(request: Request) {
   const url = new URL(request.url);

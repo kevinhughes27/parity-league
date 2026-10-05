@@ -39,7 +39,7 @@ Follow ups:
 - **No stats table.** A game is stored as one JSON doc (`games.doc`), stats are computed on read and cached in memory until the next write.
 - **Game ids are strings.** v2 games keep their numeric ids ("123"), new games get a uuid from the stat keeper. `PUT /api/:league/games/:id` is idempotent: identical re-uploads succeed, a changed upload of a final game is a 409 (admins edit with POST).
 - **The Zuluru sync only touches the current league** and stops a week after its last scheduled game, so finished seasons keep their rosters.
-- **Dev league** (id 0, `worker/dev.ts`): only in development, seeds itself, is the current league. Real leagues are read from production in dev, writes stay local. Tests (vitest) also run in development mode so they use it.
+- **Dev league** (id 0, `worker/dev.ts`): only in development, seeds itself, is the current league. Real leagues are read only in dev: only GETs are proxied to production (the development branch in `worker/index.ts`), writes stay local. `PRODUCTION` is the workers.dev deployment because parity.ocua.ca still points at v2 until the cutover. Tests (vitest) also run in development mode so they use it.
 - **Kept v2's API shapes** so the React app barely changed. v2 quirks kept on purpose: Python's round half to even (`pyRound`), stat values v1/v2, salary calcs.
 - **No ESLint.** `tsc` checks unused locals/params. Prettier config lives in `package.json`, vitest config in `vite.config.ts`.
 

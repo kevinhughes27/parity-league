@@ -77,19 +77,16 @@ case "$cmd" in
   setup)
     run yarn install --frozen-lockfile
     if [ ! -f .dev.vars ]; then
-      # local secrets (git ignored). In production they are set with `./dev wrangler secret put NAME`
+      # local secrets (git ignored). In production they are set with `./dev yarn wrangler secret put NAME`
       printf 'ADMIN_PASSWORD=dev\nZULURU_USER=\nZULURU_PASSWORD=\n' > .dev.vars
     fi
     echo "Ready. Run ./dev up"
     ;;
   up)      run yarn dev "$@" ;;
-  import_v2) run node scripts/import_v2.ts "$@" ;;
-  test)    run yarn test "$@" ;;
-  e2e)     e2e "$@" ;;
   check)   run sh -c 'yarn type-check && yarn format:check && yarn test' ;;
+  e2e)     e2e "$@" ;;
   yarn)    run yarn "$@" ;;
-  wrangler) run yarn wrangler "$@" ;;
-  deploy)  run sh -c 'yarn build && yarn wrangler deploy "$@"' deploy "$@" ;;
+  deploy)  run yarn deploy "$@" ;;
   shell)   run bash ;;
   *)
     cat <<'EOF'
@@ -97,13 +94,10 @@ Usage: ./dev <command>
 
   setup                   install dependencies, create .dev.vars
   up                      start the app (React + Worker + Durable Objects) on :5173
-  import_v2 --to <url> [--all]   copy leagues between servers (can read a v2 sqlite)
-  test                    run the unit tests
-  e2e [args]              run the stat keeper tests in a browser (--headed or --debug to watch)
   check                   type-check, format check and unit tests
-  yarn <args>             run yarn
-  wrangler <args>         run wrangler (e.g. ./dev wrangler secret put ADMIN_PASSWORD)
+  e2e [args]              run the stat keeper tests in a browser (--headed or --debug to watch)
   deploy [--secrets-file <file>]   build and deploy (first deploy needs --secrets-file prod.secrets)
+  yarn <args>             run yarn (test, import_v2, wrangler, ...)
   shell                   open a shell in the container
 EOF
     ;;

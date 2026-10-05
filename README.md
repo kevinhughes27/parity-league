@@ -83,12 +83,12 @@ The e2e tests (`e2e/`) drive the stat keeper through whole games against a produ
 ## Deploying
 
 ```sh
-./dev wrangler login        # login to cloudflare
+./dev yarn wrangler login  # login to cloudflare
 ./dev deploy                # build and deploy production
-./dev wrangler tail         # production logs
+./dev yarn wrangler tail   # production logs
 ```
 
-The first `./dev deploy` publishes the Worker and app to your account's `workers.dev` subdomain at `https://parity.<account>.workers.dev`. There is no database or other service to create: a league's Durable Object (and its tables) is created the first time the Worker asks for it. Authenticate once with `./dev wrangler login`.
+The first `./dev deploy` publishes the Worker and app to your account's `workers.dev` subdomain at `https://parity.<account>.workers.dev`. There is no database or other service to create: a league's Durable Object (and its tables) is created the first time the Worker asks for it. Authenticate once with `./dev yarn wrangler login`.
 
 `wrangler.jsonc` declares the Worker's secrets as required, and Cloudflare only lets you `wrangler secret put` on a Worker that already exists. So the first deploy has to supply them in a git-ignored file called `prod.secrets`:
 
@@ -107,9 +107,9 @@ Then:
 Secret values can be replaced but never read back:
 
 ```sh
-./dev wrangler secret put ADMIN_PASSWORD     # for editing/deleting games in the web UI
-./dev wrangler secret put ZULURU_USER        # an OCUA account that can see rosters
-./dev wrangler secret put ZULURU_PASSWORD
+./dev yarn wrangler secret put ADMIN_PASSWORD  # for editing/deleting games in the web UI
+./dev yarn wrangler secret put ZULURU_USER     # an OCUA account that can see rosters
+./dev yarn wrangler secret put ZULURU_PASSWORD
 ```
 
 ### Importing
@@ -117,7 +117,7 @@ Secret values can be replaced but never read back:
 `scripts/import_v2.ts` copies leagues between servers and can read a v2 sqlite database. To import the v2 data into the live Worker:
 
 ```sh
-ADMIN_PASSWORD=... ./dev import_v2 --to https://parity.kevinhughes27.workers.dev --all --from v2.sqlite
+ADMIN_PASSWORD=... ./dev yarn import_v2 --to https://parity.kevinhughes27.workers.dev --all --from v2.sqlite
 ```
 
 Without `--all` only the current league is imported. Importing replaces everything in each target league and needs the target Worker's `ADMIN_PASSWORD`, passed through from the host.
@@ -134,7 +134,7 @@ Once a day the Worker logs in to OCUA's Zuluru with the `ZULURU_USER` and `ZULUR
 
 The sync only ever touches the current league, and it stops a week after the league's last scheduled game (playoffs are scheduled week by week) so a finished season keeps the rosters it ended with. Adding the next season to `leagues.json` starts it again. `POST /api/<league>/zuluru_sync` (admin) syncs right away, again only for the current league.
 
-When it breaks (Zuluru changes its pages, the password changes) it fails before changing anything: rosters and the schedule stay as they were, and stat keepers can still add anyone missing as a sub. The error shows up in the logs (`./dev wrangler tail` or the dashboard) and in the response from the admin endpoint.
+When it breaks (Zuluru changes its pages, the password changes) it fails before changing anything: rosters and the schedule stay as they were, and stat keepers can still add anyone missing as a sub. The error shows up in the logs (`./dev yarn wrangler tail` or the dashboard) and in the response from the admin endpoint.
 
 ### Backups
 

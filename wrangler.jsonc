@@ -26,7 +26,7 @@
   // is on (UTC, 3am Toronto). See Zuluru sync in the README.
   "triggers": { "crons": ["0 8 * * *"] },
 
-  // Set with `./dev wrangler secret put NAME`. Locally they come from .dev.vars
+  // Set with `./dev yarn wrangler secret put NAME`. Locally they come from .dev.vars
   "secrets": { "required": ["ADMIN_PASSWORD", "ZULURU_USER", "ZULURU_PASSWORD"] },
 
   "observability": { "enabled": true },

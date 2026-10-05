@@ -20,7 +20,7 @@ Not done yet:
 
 Still to verify (the sandbox has no podman and can't reach parity.ocua.ca):
 
-- `./dev up` and `./dev e2e` in the Playwright image. `./dev deploy` and `./dev wrangler` have been run by hand; the import script was run directly with Node 24.
+- `./dev up` and `./dev e2e` in the Playwright image. `./dev deploy` and `./dev yarn wrangler` have been run by hand; the import script was run directly with Node 24.
 - The GitHub Actions workflow (`.github/workflows/ci.yml`).
 - The Zuluru login (needs real credentials). Parsing was tested against real public pages (teams lists, schedules) and a saved roster page.
 - Dev mode reading real leagues from production (`worker/dev.ts`). Tested against a local v2 server instead.
@@ -47,7 +47,7 @@ Follow ups:
 
 - Use `./dev` (podman) for everything, node is not run directly on the host. `./dev check` and `./dev e2e` before committing (in a sandbox without podman: `yarn type-check && yarn format:check && yarn test && yarn e2e`).
 - Never write to production. Dev mode can only read it. `scripts/import_v2.ts` writes wherever `--to` points.
-- `v2.sqlite` (git ignored, a copy of v2's database) is what `./dev import_v2 --from v2.sqlite` imports. Refresh it from production right before the cutover.
+- `v2.sqlite` (git ignored, a copy of v2's database) is what `./dev yarn import_v2 --from v2.sqlite` imports. Refresh it from production right before the cutover.
 - Style: small, plain code with comments that explain why. The README is hand written, no hard wrapped lines, and it's fine for it to explain Cloudflare concepts for newcomers.
 - The SQL schema (`SCHEMA` in `worker/league.ts`) is append only, each entry runs once per Durable Object. `migrations` in `wrangler.jsonc` is for Durable Object classes, not tables.
 

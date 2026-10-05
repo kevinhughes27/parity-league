@@ -16,7 +16,6 @@ Done and verified:
 Not done yet:
 
 - **The cutover.** Production is still v2 at https://parity.ocua.ca. v3 is deployed at https://parity.kevinhughes27.workers.dev with the v2 database imported. The only step left is OCUA pointing the `parity.ocua.ca` CNAME at that workers.dev URL.
-- The commits are unsigned (made from a sandbox with no gpg).
 
 Still to verify (the sandbox has no podman and can't reach parity.ocua.ca):
 

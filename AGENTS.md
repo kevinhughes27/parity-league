@@ -27,7 +27,7 @@ Still to verify (the sandbox has no podman and can't reach parity.ocua.ca):
 
 Follow ups:
 
-- After the cutover: delete the v2 sqlite reader in `scripts/seed.ts` and the `/submit_game` route in `worker/index.ts`.
+- After the cutover: delete the v2 sqlite reader in `scripts/seed.ts`.
 - Sub genders aren't uploaded by the stat keeper (rosters are just names), see the `custom substitutes` e2e test.
 - Live games: the API accepts `"status": "live"` and keeps live games out of stats but the stat keeper doesn't send it. This is left for later.
 - Ratio warnings in the stat keeper are disabled (commented cases in `e2e/rules.spec.ts`).

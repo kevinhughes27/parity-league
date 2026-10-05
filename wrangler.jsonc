@@ -12,7 +12,7 @@
   // (with the vite plugin the build output directory is set automatically)
   "assets": {
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/submit_game"]
+    "run_worker_first": ["/api/*"]
   },
 
   // One SQLite backed Durable Object per league (see worker/league.ts)

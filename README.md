@@ -58,6 +58,8 @@ All data is public and CORS enabled. `:league` is the league id from `/api/leagu
 
 Admin (basic auth, user `admin`): `POST /api/:league/games/:id` edit, `DELETE /api/:league/games/:id`, `POST /api/:league/import`, `POST /api/:league/zuluru_sync`.
 
+`/docs` is an interactive version of this list (Swagger UI, requests can be tried out), generated from `public/openapi.json`. Keep the spec in sync when the API changes.
+
 ## Development
 
 Everything runs in a container via `./dev` (needs [podman](https://podman.io)), so node, yarn and wrangler never run directly on your machine.

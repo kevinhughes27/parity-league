@@ -52,14 +52,6 @@ async function handle(request: Request, env: Env): Promise<Response> {
   const method = request.method;
   const [prefix, leagueId, resource, id, ...rest] = url.pathname.split('/').filter(Boolean);
 
-  // v2 stat keeper upload. Only kept so open tabs keep working through the cutover.
-  if (prefix === 'submit_game' && method === 'POST') {
-    const body = (await request.json()) as { league_id: number };
-    const league = findLeague(body.league_id);
-    if (!league) return json({ error: 'Unknown league' }, 404);
-    return saveGame(env, league, crypto.randomUUID(), body);
-  }
-
   if (prefix !== 'api') return json({ error: 'Not found' }, 404);
   if (leagueId === 'leagues' && !resource) return json(leagues);
 

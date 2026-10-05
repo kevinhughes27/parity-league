@@ -1,0 +1,455 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Parity League API",
+    "description": "Ultimate league stats. All data is public and CORS enabled. `:league` is a league id from `GET /api/leagues`. Admin routes use HTTP basic auth (user `admin`).",
+    "version": "3.0.0"
+  },
+  "servers": [{ "url": "/" }],
+  "components": {
+    "securitySchemes": {
+      "adminAuth": { "type": "http", "scheme": "basic" }
+    },
+    "parameters": {
+      "league": {
+        "name": "league",
+        "in": "path",
+        "required": true,
+        "description": "League id, from `GET /api/leagues`",
+        "schema": { "type": "string" }
+      }
+    },
+    "schemas": {
+      "League": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "lineSize": { "type": "integer" },
+          "statValues": { "type": "string", "enum": ["v1", "v2"] },
+          "salaryCalc": { "type": "string", "example": "pro_rate" },
+          "zuluru": { "type": "string", "nullable": true }
+        }
+      },
+      "Team": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "players": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "is_open": { "type": "boolean" },
+                "team": { "type": "string", "description": "Team name, included on each player" }
+              }
+            }
+          }
+        }
+      },
+      "Matchup": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "week": { "type": "integer" },
+          "homeTeamId": { "type": "integer" },
+          "awayTeamId": { "type": "integer" },
+          "gameStart": {
+            "type": "string",
+            "description": "Local league time, ISO without offset, e.g. 2026-03-15T18:00:00"
+          },
+          "gameEnd": { "type": "string" }
+        }
+      },
+      "Game": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "league_id": { "type": "integer" },
+          "status": { "type": "string", "enum": ["live", "final"] },
+          "week": { "type": "integer" },
+          "homeTeam": { "type": "string" },
+          "awayTeam": { "type": "string" },
+          "homeRoster": { "type": "array", "items": { "type": "string" } },
+          "awayRoster": { "type": "array", "items": { "type": "string" } },
+          "homeScore": { "type": "integer" },
+          "awayScore": { "type": "integer" },
+          "points": { "type": "array", "items": { "$ref": "#/components/schemas/Point" } }
+        }
+      },
+      "Point": {
+        "type": "object",
+        "properties": {
+          "offensePlayers": { "type": "array", "items": { "type": "string" } },
+          "defensePlayers": { "type": "array", "items": { "type": "string" } },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["PULL", "PASS", "POINT", "DEFENSE", "THROWAWAY", "DROP"]
+                },
+                "firstActor": { "type": "string" },
+                "secondActor": { "type": "string", "nullable": true },
+                "timestamp": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "StatLine": {
+        "type": "object",
+        "description": "Per-player stat line. Counting stats (goals, assists, second_assists, d_blocks, completions, throw_aways, threw_drops, catches, drops, pulls, callahan, o_points_for, o_points_against, d_points_for, d_points_against) plus derived fields.",
+        "properties": {
+          "team": { "type": "string" },
+          "points_played": { "type": "integer" },
+          "pay": { "type": "number" },
+          "salary_per_point": { "type": "number" },
+          "o_efficiency": { "type": "number" },
+          "d_efficiency": { "type": "number" },
+          "total_efficiency": { "type": "number" }
+        },
+        "additionalProperties": { "type": "number" }
+      },
+      "Stats": {
+        "type": "object",
+        "description": "Stat lines keyed by player name",
+        "additionalProperties": { "$ref": "#/components/schemas/StatLine" }
+      },
+      "PlayerSalary": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "is_open": { "type": "boolean" },
+          "team": { "type": "string" },
+          "salary": { "type": "integer", "nullable": true }
+        }
+      },
+      "LeagueExport": {
+        "type": "object",
+        "description": "Everything a league holds. Returned by /export, accepted by /import.",
+        "properties": {
+          "version": { "type": "integer", "enum": [1] },
+          "league": { "$ref": "#/components/schemas/League" },
+          "teams": { "type": "array", "items": { "$ref": "#/components/schemas/Team" } },
+          "matchups": { "type": "array", "items": { "$ref": "#/components/schemas/Matchup" } },
+          "games": { "type": "array", "items": { "$ref": "#/components/schemas/Game" } }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/leagues": {
+      "get": {
+        "summary": "All leagues",
+        "responses": {
+          "200": {
+            "description": "The league registry. The first entry is the current league.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/League" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/{league}/teams": {
+      "get": {
+        "summary": "Teams and rosters",
+        "parameters": [{ "$ref": "#/components/parameters/league" }],
+        "responses": {
+          "200": {
+            "description": "Teams, each with its players",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Team" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/{league}/schedule": {
+      "get": {
+        "summary": "Teams and upcoming games",
+        "parameters": [{ "$ref": "#/components/parameters/league" }],
+        "responses": {
+          "200": {
+            "description": "Rosters and the schedule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "teams": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Team" }
+                    },
+                    "matchups": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Matchup" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/{league}/players": {
+      "get": {
+        "summary": "Salaries",
+        "parameters": [{ "$ref": "#/components/parameters/league" }],
+        "responses": {
+          "200": {
+            "description": "Every rostered player with their salary (null when there is too little data)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/PlayerSalary" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/{league}/weeks": {
+      "get": {
+        "summary": "Weeks played",
+        "parameters": [{ "$ref": "#/components/parameters/league" }],
+        "responses": {
+          "200": {
+            "description": "The week numbers that have games",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "type": "integer" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/{league}/weeks/{id}": {
+      "get": {
+        "summary": "Stats for one week",
+        "parameters": [
+          { "$ref": "#/components/parameters/league" },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "Week number"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stat lines for the week",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "week": { "type": "integer" },
+                    "stats": { "$ref": "#/components/schemas/Stats" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/{league}/stats": {
+      "get": {
+        "summary": "Season stats",
+        "parameters": [{ "$ref": "#/components/parameters/league" }],
+        "responses": {
+          "200": {
+            "description": "Stat lines for the season (week 0 means all weeks)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "week": { "type": "integer" },
+                    "stats": { "$ref": "#/components/schemas/Stats" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/{league}/games": {
+      "get": {
+        "summary": "Games",
+        "parameters": [
+          { "$ref": "#/components/parameters/league" },
+          {
+            "name": "includePoints",
+            "in": "query",
+            "schema": { "type": "boolean", "default": false },
+            "description": "Include every point with its events"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All games (points are omitted unless includePoints=true)",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Game" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/{league}/games/{id}": {
+      "get": {
+        "summary": "One game",
+        "parameters": [
+          { "$ref": "#/components/parameters/league" },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Game id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The game with every point and per-player stats for the game",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Game" },
+                    {
+                      "type": "object",
+                      "properties": { "stats": { "$ref": "#/components/schemas/Stats" } }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": { "description": "Game not found" }
+        }
+      },
+      "put": {
+        "summary": "Save a game from the stat keeper",
+        "description": "Idempotent: an identical re-upload succeeds, a changed upload of a final game is a 409 (admins edit with POST).",
+        "parameters": [
+          { "$ref": "#/components/parameters/league" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Game" } } }
+        },
+        "responses": {
+          "201": { "description": "Created" },
+          "200": { "description": "Updated, or an identical re-upload" },
+          "400": { "description": "Invalid game" },
+          "409": { "description": "Game is already final. Ask an admin to edit it." }
+        }
+      },
+      "post": {
+        "summary": "Edit a game (admin)",
+        "security": [{ "adminAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/league" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "The fields to change, e.g. homeScore",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Game not found" }
+        }
+      },
+      "delete": {
+        "summary": "Delete a game (admin)",
+        "security": [{ "adminAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/league" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Game not found" }
+        }
+      }
+    },
+    "/api/{league}/export": {
+      "get": {
+        "summary": "Export a league",
+        "description": "Everything for a league: teams, schedule, games with every event. Re-importable with POST /api/:league/import.",
+        "parameters": [{ "$ref": "#/components/parameters/league" }],
+        "responses": {
+          "200": {
+            "description": "The full export",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/LeagueExport" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/{league}/import": {
+      "post": {
+        "summary": "Import a league (admin)",
+        "description": "Replaces everything in the league. Use before any games are recorded.",
+        "security": [{ "adminAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/league" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/LeagueExport" } }
+          }
+        },
+        "responses": {
+          "200": { "description": "Imported" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/{league}/zuluru_sync": {
+      "post": {
+        "summary": "Sync rosters and schedule from Zuluru (admin)",
+        "description": "Only the current league syncs; finished seasons keep the rosters they ended with.",
+        "security": [{ "adminAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/league" }],
+        "responses": {
+          "200": { "description": "Synced, with the number of teams and matchups found" },
+          "400": { "description": "Not the current league" },
+          "401": { "description": "Unauthorized" },
+          "502": { "description": "Zuluru fetch failed" }
+        }
+      }
+    }
+  }
+}

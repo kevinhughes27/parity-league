@@ -142,15 +142,6 @@ describe('stat keeper uploads', () => {
     const res = await send('PUT', `${api}/games/bad`, { ...miniGame, points: 'nope' });
     expect(res.status).toBe(400);
   });
-
-  it('accepts v2 uploads', async () => {
-    const res = await send('POST', 'http://parity.test/submit_game', {
-      ...miniGame,
-      league_id: league.id,
-    });
-    expect(res.status).toBe(201);
-    expect(await getJson(`${api}/games`)).toHaveLength(3);
-  });
 });
 
 describe('admin', () => {

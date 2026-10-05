@@ -114,10 +114,10 @@ Secret values can be replaced but never read back:
 
 ### Importing
 
-`scripts/seed.ts` copies leagues between servers and can read a v2 sqlite database. To import the v2 data into the live Worker:
+`scripts/import_v2.ts` copies leagues between servers and can read a v2 sqlite database. To import the v2 data into the live Worker:
 
 ```sh
-ADMIN_PASSWORD=... ./dev seed --to https://parity.kevinhughes27.workers.dev --all --from v2.sqlite
+ADMIN_PASSWORD=... ./dev import_v2 --to https://parity.kevinhughes27.workers.dev --all --from v2.sqlite
 ```
 
 Without `--all` only the current league is imported. Importing replaces everything in each target league and needs the target Worker's `ADMIN_PASSWORD`, passed through from the host.

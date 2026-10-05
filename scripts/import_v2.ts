@@ -1,9 +1,9 @@
 // Copy leagues from one Parity server into another, e.g. v2 into v3 for the
 // migration:
 //
-//   ./dev seed --to https://<domain>                                # current league
-//   ./dev seed --to https://<domain> --all                          # every league
-//   ./dev seed --to https://<domain> --all --from v2.sqlite         # the v2 migration
+//   ./dev import_v2 --to https://<domain>                                # current league
+//   ./dev import_v2 --to https://<domain> --all                          # every league
+//   ./dev import_v2 --to https://<domain> --all --from v2.sqlite         # the v2 migration
 //
 // The source is a v3 server (its /export endpoint, production by default) or a
 // v2 sqlite database. Importing replaces the league's data on the target and

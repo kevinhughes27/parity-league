@@ -3915,10 +3915,10 @@ vite@6.4.3:
   optionalDependencies:
     fsevents "~2.3.3"
 
-vitest-canvas-mock@^1.1.4:
-  version "1.1.4"
-  resolved "https://registry.yarnpkg.com/vitest-canvas-mock/-/vitest-canvas-mock-1.1.4.tgz#c84b25c255ae651c888feeb22ff483a9c856c78c"
-  integrity sha512-4boWHY+STwAxGl1+uwakNNoQky5EjPLC8HuponXNoAscYyT1h/F7RUvTkl4IyF/MiWr3V8Q626je3Iel3eArqA==
+vitest-canvas-mock@^1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/vitest-canvas-mock/-/vitest-canvas-mock-1.2.0.tgz#314c47260b75ee76eab0914310dcc02fd684297d"
+  integrity sha512-gTy8+dL7aDFZq2EOGCk5krSVsvszTW/M+58efNzybehZNakON2HiPfi3bDBAp85L8DL+D+f/cNtQ5N60rZEL7A==
   dependencies:
     cssfontparser "^1.2.1"
     moo-color "^1.0.3"

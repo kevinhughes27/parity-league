@@ -37,6 +37,8 @@ The app spans leagues without knowing about Durable Objects. The league picker c
 
 **Adding a league** is adding it to the top of `leagues.json` and deploying (see New season). There is no other setup: a Durable Object exists as soon as the Worker asks for it, and it creates its tables the first time it is used. The data arrives from the Zuluru sync and the stat keeper.
 
+**Correcting a league's name or url** is the same edit: they are read from `leagues.json` on every request and are not stored in the Durable Object, so change the entry, keep its id, and deploy. The url has to be the page that lists the teams, so a league page that only lists divisions won't do (see New season). If the old url already synced, sync again afterwards (see Zuluru sync).
+
 **League ids are forever.** They name the Durable Object and are in every link. Taking a league out of the list only hides it, its data stays where it was.
 
 **The dev league.** In development (`./dev up`) the list has one more league, id 0, that only exists on your machine. It is the current league, so the stat keeper records games into it, and it fills itself with made up teams, a schedule and a couple of games the first time it is used. The real leagues show production's data so there is something real to look at. They are read only: only GET requests are proxied, anything that would change them stays local. See the development branch in `worker/index.ts` and `worker/dev.ts`.
@@ -127,6 +129,8 @@ Without `--all` only the current league is imported. Importing replaces everythi
 1. Find the Zuluru page that lists the Parity teams. OCUA sets up some seasons as their own Zuluru league and others as a division of a bigger league, so it is either `.../zuluru/leagues/view?league=1234` or `.../zuluru/divisions/view?division=5678`.
 2. Add the league to the top of `shared/leagues.json` with that url as `zuluru`, then deploy.
 3. The next daily sync fills in the teams and schedule, or sync right away: `curl -u admin:$PASSWORD -X POST https://parity.ocua.ca/api/<league>/zuluru_sync`.
+
+Getting the name or url wrong is fixable afterwards, it is the same entry (see Leagues).
 
 ### Zuluru sync
 

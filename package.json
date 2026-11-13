@@ -60,7 +60,7 @@
     "typescript": "^5.8.3",
     "vite": "6.4.3",
     "vitest": "^4.1.11",
-    "vitest-canvas-mock": "^1.1.4",
+    "vitest-canvas-mock": "^1.2.0",
     "wrangler": "^4.145.0"
   },
   "scripts": {

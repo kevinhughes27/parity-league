@@ -147,6 +147,33 @@ describe('Bookkeeper', () => {
     expect(bookkeeper.firstActor).toBe(PLAYER1);
   });
 
+  test('a pass to the player with the disc is ignored', async () => {
+    await bookkeeper.recordFirstActor(PLAYER1, true);
+    await bookkeeper.recordPass(PLAYER1);
+
+    verifyEventCount(0);
+    expect(bookkeeper.firstActor).toBe(PLAYER1);
+
+    // nothing was pushed to the undo stack either
+    expect(bookkeeper.getUndoCount()).toBe(1); // just the recordFirstActor
+    await bookkeeper.undo();
+    expect(bookkeeper.firstActor).toBeNull();
+  });
+
+  test('repeated passes to the same receiver only record one pass', async () => {
+    // Simulates extra taps on the receiver's button landing before the UI
+    // re-renders and disables it
+    await bookkeeper.recordFirstActor(PLAYER1, true);
+    await bookkeeper.recordPass(PLAYER3);
+    await bookkeeper.recordPass(PLAYER3);
+    await bookkeeper.recordPass(PLAYER3);
+
+    verifyEventCount(1);
+    const lastEvent = bookkeeper.activePoint!.getLastEvent();
+    verifyEvent(lastEvent!, EventType.PASS, PLAYER1, PLAYER3);
+    expect(bookkeeper.firstActor).toBe(PLAYER3);
+  });
+
   test('testUndoPoint', async () => {
     await bookkeeper.recordFirstActor(PLAYER1, true);
     await bookkeeper.recordPass(PLAYER3);

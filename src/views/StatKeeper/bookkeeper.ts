@@ -321,11 +321,13 @@ export class Bookkeeper {
     // Action
     action();
 
-    // Save to IndexedDb
-    await this.saveToDatabase();
-
-    // Notify React components
+    // Notify React components right away so the UI reflects the new state
+    // (e.g. disables the button of the player who now has the disc) instead
+    // of waiting on the IndexedDB write.
     this.notifyListeners();
+
+    // Save to IndexedDb (notifies again itself if the save fails)
+    await this.saveToDatabase();
   }
 
   public async recordActivePlayers(

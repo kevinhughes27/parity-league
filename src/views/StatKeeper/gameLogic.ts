@@ -293,6 +293,11 @@ export class GameMethods {
     const activePointMethods = this.getActivePointMethods();
     if (!activePointMethods || !this.game.firstActor) return;
 
+    // A player cannot pass to themselves. The UI disables the active player's
+    // button, but a tap that lands before the UI re-renders would record a
+    // self pass (this has happened in real games when the page lagged).
+    if (receiver === this.game.firstActor) return;
+
     this.game.undoStack.push({
       type: 'recordPass',
       timestamp: this.timestamp(),
